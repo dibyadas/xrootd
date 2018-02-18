@@ -56,7 +56,8 @@ func SendInvalid(conn net.Conn, streamID [2]byte) error {
 		copy(data[0:8],response[0:])
 		response = data
 		fmt.Println(response)
-		fmt.Println(string(response[12:])) // why from 12 and not 8?? 
+		fmt.Println("Invalid Status Code:- ",binary.BigEndian.Uint16(response[2:]))
+		fmt.Println("Server message:- ",string(response[12:])) // why from 12 and not 8?? 
 		return err	
 	}
 
