@@ -16,6 +16,18 @@ const kXR_protocol uint16 = 3006
 const kXR_ping uint16 = 3011
 const kXR_login uint16 = 3007
 
+
+type ClientRequest struct{      // I think using this would be a much cleaner and organized approach.
+	streamID string				// This struck me later :p 
+	requestid uint16
+	params string
+	dlen uint32
+	data string
+}
+
+
+
+
 func SendProtocol(conn net.Conn, streamID [2]byte) error {
 	bytesToSend := make([]byte,24)
 
