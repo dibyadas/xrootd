@@ -14,7 +14,7 @@ const (
 )
 
 
-func StartServer() {
+func StartServer(started chan bool) {
 	l, err := net.Listen("tcp", CONN_HOST+":"+CONN_PORT)
     if err != nil {
         fmt.Println("Error listening:", err.Error())
@@ -23,6 +23,7 @@ func StartServer() {
     // Close the listener when the application closes.
     defer l.Close()
     fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+    started <- true
     for {
         // Listen for an incoming connection.
         conn, err := l.Accept()

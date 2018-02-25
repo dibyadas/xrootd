@@ -16,8 +16,10 @@ const (
 
 
 func TestSendHandshake(t *testing.T) {
-	// go xrootd_mockserver.StartServer()
-
+	started := make(chan bool)
+	go xrootd_mockserver.StartServer(started)
+	<- started
+	
 	// done := make(chan bool)
 
 	testValues := []struct{
