@@ -1,0 +1,6 @@
+*.pdf
+activate
+pkg/
+!src/xrootd*
+test*
+xrootd-test-srv
