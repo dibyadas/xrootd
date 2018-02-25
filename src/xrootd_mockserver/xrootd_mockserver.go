@@ -13,31 +13,33 @@ const (
 	 	CONN_PORT = "9005" 
 )
 
+func StartServer(service string, started chan bool) {
 
-func StartServer(started chan bool) {
+	functions :=  map[string]func(net.Conn){ 
+				"SendHandshake": SendHandshakeServe,
+				}
+
 	l, err := net.Listen("tcp", CONN_HOST+":"+CONN_PORT)
     if err != nil {
         fmt.Println("Error listening:", err.Error())
         os.Exit(1)
     }
-    // Close the listener when the application closes.
+ 
     defer l.Close()
     fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
     started <- true
     for {
-        // Listen for an incoming connection.
         conn, err := l.Accept()
         if err != nil {
             fmt.Println("Error accepting: ", err.Error())
             os.Exit(1)
         }
-        // Handle connections in a new goroutine.
-        go handleRequest(conn)
+        go functions[service](conn)
     }
 }
 
 
-func handleRequest(conn net.Conn) {
+func SendHandshakeServe(conn net.Conn) {
 	request := make([]byte,20)
 	defer conn.Close()
 

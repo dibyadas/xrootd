@@ -17,10 +17,9 @@ const (
 
 func TestSendHandshake(t *testing.T) {
 	started := make(chan bool)
-	go xrootd_mockserver.StartServer(started)
+	go xrootd_mockserver.StartServer("SendHandshake", started)
 	<- started
-	
-	// done := make(chan bool)
+
 
 	testValues := []struct{
 		testValue []uint32
@@ -44,7 +43,6 @@ func TestSendHandshake(t *testing.T) {
 			if serverType != expectedOutput {
 				t.Errorf("Fail, serverType != %d",expectedOutput)	
 			}
-			// done <- true
 	}
 
 	for _, v := range testValues {
@@ -52,12 +50,6 @@ func TestSendHandshake(t *testing.T) {
 		for i, v  := range v.testValue {
 			binary.BigEndian.PutUint32(bytesToSend[4*i:], v)
 		}
-
 		tester(bytesToSend, v.serverType)
 	}
-
-	// for range testValues {
-	// 	<- done
-	// }
 }
-
