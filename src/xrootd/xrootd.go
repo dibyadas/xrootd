@@ -1,31 +1,15 @@
 package xrootd
 
-// import (
-// 	"net"
-// )
-
 import (
-	// "github.com/lunixbochs/struc"
-	// "bytes"
 	"fmt"
 	"net"
 	"encoding/binary"
+	"io"
 )
 
 const kXR_protocol uint16 = 3006
 const kXR_ping uint16 = 3011
 const kXR_login uint16 = 3007
-
-
-type ClientRequest struct{      // I think using this would be a much cleaner and organized approach.
-	streamID string				// This struck me later :p 
-	requestid uint16
-	params string
-	dlen uint32
-	data string
-}
-
-
 
 
 func SendProtocol(conn net.Conn, streamID [2]byte) error {
@@ -42,16 +26,17 @@ func SendProtocol(conn net.Conn, streamID [2]byte) error {
 	}
 
 	response := make([]byte,16)
-	binary.Read(conn, binary.BigEndian, &response)
+	if _, readErr := io.ReadFull(conn,response); readErr != nil {
+		return readErr
+	}
+
 	fmt.Println(response)
 	return err
 }
 
 func SendInvalid(conn net.Conn, streamID [2]byte) error {
 	bytesToSend := make([]byte,24)
-
 	copy(bytesToSend[0:],streamID[0:])
-
 	binary.BigEndian.PutUint16(bytesToSend[2:], 0)  // for invalid request
 
 	_, err := conn.Write(bytesToSend)
@@ -60,11 +45,16 @@ func SendInvalid(conn net.Conn, streamID [2]byte) error {
 	}
 
 	response := make([]byte,8)
-	binary.Read(conn, binary.BigEndian, &response)
+	if _, readErr := io.ReadFull(conn,response); readErr != nil {
+		return readErr
+	}
+
 	dlen := binary.BigEndian.Uint32(response[4:])
 	if dlen != 0 {
 		data := make([]byte, 8+dlen)
-		binary.Read(conn, binary.BigEndian, data[8:])
+		if _, readErr2 := io.ReadFull(conn,data[8:]); readErr2 != nil {
+			return readErr2
+		}
 		copy(data[0:8],response[0:])
 		response = data
 		fmt.Println(response)
@@ -80,11 +70,10 @@ func SendInvalid(conn net.Conn, streamID [2]byte) error {
 
 func SendLogin(conn net.Conn, streamID [2]byte) error {
 	bytesToSend := make([]byte, 24)
-
 	copy(bytesToSend[0:], streamID[0:])
 
 	binary.BigEndian.PutUint16(bytesToSend[2:], kXR_login)
-	// binary.BigEndian.PutUint32(bytesToSend[20:], 0)
+
 	copy(bytesToSend[8:], []byte("gopher"))
 	_, err := conn.Write(bytesToSend)
 	if err != nil{
@@ -92,11 +81,16 @@ func SendLogin(conn net.Conn, streamID [2]byte) error {
 	}
 
 	response := make([]byte,8)
-	binary.Read(conn, binary.BigEndian, &response)
+	if _, readErr := io.ReadFull(conn,response); readErr != nil {
+		return readErr
+	}
+
 	slen := binary.BigEndian.Uint32(response[4:])
 	if slen != 0 {
 		sec := make([]byte, 8+slen)
-		binary.Read(conn, binary.BigEndian, sec[8:])
+		if _, readErr2 := io.ReadFull(conn,sec[8:]); readErr2 != nil {
+			return readErr2
+		}
 		copy(sec[0:8],response[0:])
 		response = sec
 		fmt.Println(response)
@@ -121,7 +115,9 @@ func SendPing(conn net.Conn, streamID [2]byte) error {
 	}
 
 	response := make([]byte,8)
-	binary.Read(conn, binary.BigEndian, &response)
+	if _, readErr := io.ReadFull(conn,response); readErr != nil {
+		return readErr
+	}
 	fmt.Println(response)
 	return err	
 
@@ -138,25 +134,21 @@ func PrepHandshake() []byte {
 }
 
 
-func SendHandshake(conn net.Conn) error {
-	bytesToSend := PrepHandshake()
+func SendHandshake(conn net.Conn, bytesToSend []byte) (int, error) {
 	_, err := conn.Write(bytesToSend)
 	if err != nil{
-		return err
+		return -1,err
 	}
 
 	response := make([]byte, 16)
-	binary.Read(conn, binary.BigEndian, &response)
+	if _, readErr := io.ReadFull(conn,response); readErr != nil {
+		return -1,readErr
+	}
 	serverType := binary.BigEndian.Uint32(response[12:])
 	if serverType == 1 {
 		fmt.Println("DataServer")
 	} else if serverType == 0 {
 		fmt.Println("LoadBalancer")
 	}
-
-	return err
+	return int(serverType),err
 }
-
-// func (cr *ClientRequest) PrepHandshake(w [*bytes.Buffer]) error {
-// 	return struc.Pack(w,cr)
-// }

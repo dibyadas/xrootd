@@ -14,9 +14,10 @@ func main() {
 		fmt.Println("no")
 	}
 	defer conn.Close()
-
+	
 	fmt.Println("--- Initiating Handshake ---")
-	xrootd.SendHandshake(conn)
+	serverType, err := xrootd.SendHandshake(conn, xrootd.PrepHandshake())
+	fmt.Println(serverType)
 	fmt.Println("--- Done ---")
 	fmt.Println()
 
