@@ -10,14 +10,10 @@ import (
 
 const ( 
 		CONN_HOST = "0.0.0.0"
-	 	CONN_PORT = "9005" 
+	 	CONN_PORT = "0" 
 )
 
-func StartServer(service string, started chan bool) {
-
-	functions :=  map[string]func(net.Conn){ 
-				"SendHandshake": SendHandshakeServe,
-				}
+func StartServer(started chan string, service chan string) {
 
 	l, err := net.Listen("tcp", CONN_HOST+":"+CONN_PORT)
     if err != nil {
@@ -27,15 +23,33 @@ func StartServer(service string, started chan bool) {
  
     defer l.Close()
     fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
-    started <- true
+    started <- fmt.Sprintf("%d",(l.Addr().(*net.TCPAddr).Port))
     for {
         conn, err := l.Accept()
         if err != nil {
             fmt.Println("Error accepting: ", err.Error())
             os.Exit(1)
         }
-        go functions[service](conn)
+        go handleRequest(conn, service)
     }
+}
+
+func handleRequest(conn net.Conn, service chan string) {
+	functions :=  map[string]func(net.Conn){ 
+				"SendHandshake": SendHandshakeServe,
+				"SendLogin": SendLoginServe,
+	}
+	functions[ <- service](conn)	
+}
+
+
+func SendLoginServe(conn net.Conn) {
+	request := make([]byte,4)
+	defer conn.Close()  
+	io.ReadFull(conn,request)
+	fmt.Println("Client Request :- ",request)
+
+	conn.Write([]byte{0,0,0,2})     // to add Login logic
 }
 
 
@@ -61,5 +75,8 @@ func SendHandshakeServe(conn net.Conn) {
 		binary.BigEndian.PutUint32(response[12:], 1)
 		conn.Write(response)
 	}
-
 }
+
+// func SendLoginServe(conn net.Conn) {
+	
+// }
