@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"io"
+	// "io"
 )
 
 const (
@@ -21,14 +21,19 @@ type TestHandshakeResponse struct {
 	serverType int
 }
 
-var service chan string
+type TestLoginResponse struct {
+	name string
+	streamID [2]byte
+	username string
+	result int
+}
+
 var MOCKSEVER_PORT string
 
 func TestMain(m *testing.M) {
-	started := make(chan string)
-	service = make(chan string, 1)
+	started := make(chan string,1)
 
-	go xrootd_mockserver.StartServer(started, service)
+	go xrootd_mockserver.StartServer(started)
 	MOCKSEVER_PORT = <- started
 	code := m.Run()
 	os.Exit(code)
@@ -36,16 +41,29 @@ func TestMain(m *testing.M) {
 
 
 func TestSendLogin(t *testing.T) {
-	service <-	"SendLogin"
-	conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
-	defer conn.Close()	
-	if err != nil {
-		fmt.Println("no")
+
+	testValues := []TestLoginResponse{
+		{"Test1", [2]byte{190,239}, "dibya",1},
 	}
-	conn.Write([]byte{0,0,0,1})    // WIP
-	resp := make([]byte, 4)
-	io.ReadFull(conn, resp)
-	fmt.Println(resp)
+
+	var tester func(TestLoginResponse)
+	tester = func(v TestLoginResponse) {
+			conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
+			defer conn.Close()	
+			if err != nil {
+				fmt.Println("no")
+			}
+			err2 := xrootd.SendLogin(conn, [2]byte(v.streamID), v.username)
+			if err2 != nil {
+				t.Errorf("Fail %s",v.name)	
+			}
+	}
+
+	for _, v := range testValues {
+		tester(v)
+	}
+
+
 }
 
 func TestSendHandshake(t *testing.T) {
@@ -73,7 +91,7 @@ func TestSendHandshake(t *testing.T) {
 			0,0,3,220,
 		}, -1}, // incorrect
 		{"Test4", []byte{
-			0,1,0,0,
+			0,0,0,0,
 			0,0,0,0,
 			0,0,0,0,
 			0,0,0,4,
@@ -90,12 +108,11 @@ func TestSendHandshake(t *testing.T) {
 			}
 			serverType, err := xrootd.SendHandshake(conn, v.request)
 			if serverType != v.serverType {
-				t.Errorf("%s Fail, serverType != %d",v.name , v.serverType)	
+				t.Errorf("%s Fail, serverType != %d, got serverType = %d",v.name , v.serverType, serverType)	
 			}
 	}
 
 	for _, v := range testValues {
-		service <- "SendHandshake"
 		tester(v)
 	}
 }

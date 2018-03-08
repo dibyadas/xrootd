@@ -13,8 +13,13 @@ const (
 	 	CONN_PORT = "0" 
 )
 
-func StartServer(started chan string, service chan string) {
 
+const (
+	kXR_login uint16 = 3007
+)
+
+
+func StartServer(started chan string) {
 	l, err := net.Listen("tcp", CONN_HOST+":"+CONN_PORT)
     if err != nil {
         fmt.Println("Error listening:", err.Error())
@@ -30,34 +35,52 @@ func StartServer(started chan string, service chan string) {
             fmt.Println("Error accepting: ", err.Error())
             os.Exit(1)
         }
-        go handleRequest(conn, service)
+        go handleRequest(conn)
     }
 }
 
-func handleRequest(conn net.Conn, service chan string) {
-	functions :=  map[string]func(net.Conn){ 
-				"SendHandshake": SendHandshakeServe,
-				"SendLogin": SendLoginServe,
-	}
-	functions[ <- service](conn)	
-}
-
-
-func SendLoginServe(conn net.Conn) {
-	request := make([]byte,4)
-	defer conn.Close()  
-	io.ReadFull(conn,request)
-	fmt.Println("Client Request :- ",request)
-
-	conn.Write([]byte{0,0,0,2})     // to add Login logic
-}
-
-
-func SendHandshakeServe(conn net.Conn) {
-	request := make([]byte,20)
+func handleRequest(conn net.Conn) {
 	defer conn.Close()
+	functions :=  map[uint16]func(net.Conn,[]byte){ 
+				kXR_login: SendLoginServe,
+	}
 
-	io.ReadFull(conn,request)
+	requestHeaders := make([]byte,20)
+	io.ReadFull(conn, requestHeaders)
+
+
+	streamID := binary.BigEndian.Uint16(requestHeaders[0:])
+	requestID := binary.BigEndian.Uint16(requestHeaders[2:])
+
+	if streamID == 0 && requestID == 0 {
+		SendHandshakeServe(conn, requestHeaders)
+	} else {
+		dlen_byte := make([]byte, 4)
+		io.ReadFull(conn, dlen_byte)
+		dlen := binary.BigEndian.Uint32(dlen_byte)
+		if dlen != 0 {
+			sec := make([]byte, 24+dlen)
+			binary.BigEndian.PutUint32(sec[20:], dlen)
+			io.ReadFull(conn, sec[24:])
+			copy(sec[0:20],requestHeaders[0:])
+			requestHeaders = sec
+		}
+		functions[requestID](conn, requestHeaders)
+	}
+}
+
+
+func SendLoginServe(conn net.Conn, request []byte) {
+	fmt.Println("Client Request in login:- ",request)
+
+	response := make([]byte, 8)
+	copy(response[0:2], request[0:2])
+	conn.Write(response)     // to add Login logic
+}
+
+
+func SendHandshakeServe(conn net.Conn, request []byte) {
+	
 
 	fmt.Println("Client Request :- ",request)
 
@@ -68,7 +91,7 @@ func SendHandshakeServe(conn net.Conn) {
 	e := binary.BigEndian.Uint32(request[16:])
 
 
-	if a == 0 && b == 0 && c == 0 && d == 4 && e == 2012 {
+	if  a == 0 && b == 0 && c == 0  && d == 4 && e == 2012 {
 		response := make([]byte, 16)
 		binary.BigEndian.PutUint32(response[4:], 8)
 		binary.BigEndian.PutUint32(response[8:], 784)

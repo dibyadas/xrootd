@@ -5,6 +5,7 @@ import (
 	"net"
 	"encoding/binary"
 	"io"
+	"errors"
 )
 
 const kXR_protocol uint16 = 3006
@@ -68,18 +69,21 @@ func SendInvalid(conn net.Conn, streamID [2]byte) error {
 }
 
 
-func SendLogin(conn net.Conn, streamID [2]byte) error {
+func SendLogin(conn net.Conn, streamID [2]byte, username string) error {
 	bytesToSend := make([]byte, 24)
 	copy(bytesToSend[0:], streamID[0:])
 
 	binary.BigEndian.PutUint16(bytesToSend[2:], kXR_login)
 
-	copy(bytesToSend[8:], []byte("gopher"))
+	if len(username) > 8 {
+		return errors.New("username > 8 too long")
+	}
+	copy(bytesToSend[8:], []byte(username))
 	_, err := conn.Write(bytesToSend)
 	if err != nil{
 		return err
 	}
-
+	
 	response := make([]byte,8)
 	if _, readErr := io.ReadFull(conn,response); readErr != nil {
 		return readErr
