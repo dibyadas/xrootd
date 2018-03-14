@@ -29,7 +29,7 @@ func main() {
 	fmt.Println()
 
 	fmt.Println("--- Initiating SendLogin ---")
-	xrootd.SendLogin(conn, streamID)
+	xrootd.SendLogin(conn, streamID, "dibya")
 	fmt.Println("--- Done ---")
 	fmt.Println()
 
