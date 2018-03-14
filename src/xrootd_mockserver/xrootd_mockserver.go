@@ -6,6 +6,7 @@ import (
 		"net"
 		"io"
 		"encoding/binary"
+		"log"
 )
 
 const ( 
@@ -75,7 +76,9 @@ func SendLoginServe(conn net.Conn, request []byte) {
 
 	response := make([]byte, 8)
 	copy(response[0:2], request[0:2])
-	conn.Write(response)     // to add Login logic
+	if _, err := conn.Write(response); err != nil {
+		log.Fatal(err)
+	}
 }
 
 
@@ -96,7 +99,9 @@ func SendHandshakeServe(conn net.Conn, request []byte) {
 		binary.BigEndian.PutUint32(response[4:], 8)
 		binary.BigEndian.PutUint32(response[8:], 784)
 		binary.BigEndian.PutUint32(response[12:], 1)
-		conn.Write(response)
+		if _, err := conn.Write(response); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
