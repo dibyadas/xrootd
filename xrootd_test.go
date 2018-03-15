@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 
 	go xrootd_mockserver.StartServer(started)
 	MOCKSEVER_PORT = <- started
+
 	code := m.Run()
 	os.Exit(code)
 }
@@ -51,11 +52,11 @@ func TestSendLogin(t *testing.T) {
 			conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
 			defer conn.Close()	
 			if err != nil {
-				fmt.Println("no")
+				t.Errorf("Could not connect to Server, err = %s",err)
 			}
 			err2 := xrootd.SendLogin(conn, [2]byte(v.streamID), v.username)
 			if err2 != nil {
-				t.Errorf("Fail %s",v.name)	
+				t.Errorf("Fail %s",v.name)
 			}
 	}
 
@@ -104,7 +105,7 @@ func TestSendHandshake(t *testing.T) {
 			conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
 			defer conn.Close()	
 			if err != nil {
-				fmt.Println("no")
+				t.Errorf("Could not connect to Server, err = %s",err)
 			}
 			serverType, err := xrootd.SendHandshake(conn, v.request)
 			if serverType != v.serverType {
