@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	conn,err := net.Dial("tcp","0.0.0.0:9001")
+	conn,err := net.Dial("tcp","0.0.0.0:9001")  // tested with ccxrootdgotest.in2p3.fr:[9001,9002] as well. Working fine! :D
 	if err != nil {
 		fmt.Println("no")
 	}
