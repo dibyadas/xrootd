@@ -10,11 +10,6 @@ import (
 	// "io"
 )
 
-const (
-	MOCKSEVER_HOST = xrootd_mockserver.CONN_HOST //"0.0.0.0"
-)
-
-
 type TestHandshakeResponse struct {
 	name string
 	request []byte
@@ -28,14 +23,11 @@ type TestLoginResponse struct {
 	result int
 }
 
-var MOCKSEVER_PORT string
+
+var Client, Server net.Conn
+
 
 func TestMain(m *testing.M) {
-	started := make(chan string,1)
-
-	go xrootd_mockserver.StartServer(started)
-	MOCKSEVER_PORT = <- started
-
 	code := m.Run()
 	os.Exit(code)
 }
@@ -49,15 +41,17 @@ func TestSendLogin(t *testing.T) {
 
 	var tester func(TestLoginResponse)
 	tester = func(v TestLoginResponse) {
-			conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
-			defer conn.Close()	
-			if err != nil {
-				t.Errorf("Could not connect to Server, err = %s",err)
-			}
-			err2 := xrootd.SendLogin(conn, [2]byte(v.streamID), v.username)
+
+			Client, Server = net.Pipe()
+			go xrootd_mockserver.HandleRequest(Server)
+
+			err2 := xrootd.SendLogin(Client, [2]byte(v.streamID), v.username)
 			if err2 != nil {
 				t.Errorf("Fail %s",v.name)
 			}
+			
+
+
 	}
 
 	for _, v := range testValues {
@@ -102,15 +96,15 @@ func TestSendHandshake(t *testing.T) {
 
 	var tester func(TestHandshakeResponse)
 	tester = func(v TestHandshakeResponse) {
-			conn,err := net.Dial("tcp", MOCKSEVER_HOST+":"+MOCKSEVER_PORT)
-			defer conn.Close()	
-			if err != nil {
-				t.Errorf("Could not connect to Server, err = %s",err)
-			}
-			serverType, err := xrootd.SendHandshake(conn, v.request)
+
+			Client, Server = net.Pipe()
+			go xrootd_mockserver.HandleRequest(Server)
+			
+			serverType, _ := xrootd.SendHandshake(Client, v.request)
 			if serverType != v.serverType {
 				t.Errorf("%s Fail, serverType != %d, got serverType = %d",v.name , v.serverType, serverType)	
 			}
+			
 	}
 
 	for _, v := range testValues {

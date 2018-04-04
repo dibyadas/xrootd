@@ -36,11 +36,11 @@ func StartServer(started chan string) {
             fmt.Println("Error accepting: ", err.Error())
             os.Exit(1)
         }
-        go handleRequest(conn)
+        go HandleRequest(conn)
     }
 }
 
-func handleRequest(conn net.Conn) {
+func HandleRequest(conn net.Conn) {
 	defer conn.Close()
 	functions :=  map[uint16]func(net.Conn,[]byte){ 
 				kXR_login: SendLoginServe,
