@@ -4,9 +4,9 @@ import (
 	"testing"
 	"xrootd"
 	"xrootd_mockserver"
-	// "fmt"
 	"net"
-	"os"
+	// "fmt"
+	// "os"
 	// "io"
 )
 
@@ -24,13 +24,8 @@ type TestLoginResponse struct {
 }
 
 
-var Client, Server net.Conn
+// var Client, Server net.Conn
 
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	os.Exit(code)
-}
 
 
 func TestSendLogin(t *testing.T) {
@@ -42,16 +37,16 @@ func TestSendLogin(t *testing.T) {
 	var tester func(TestLoginResponse)
 	tester = func(v TestLoginResponse) {
 
-			Client, Server = net.Pipe()
+			Client, Server := net.Pipe()
 			go xrootd_mockserver.HandleRequest(Server)
 
 			err2 := xrootd.SendLogin(Client, [2]byte(v.streamID), v.username)
 			if err2 != nil {
 				t.Errorf("Fail %s",v.name)
 			}
+			Client.Close()
+			Server.Close()
 			
-
-
 	}
 
 	for _, v := range testValues {
@@ -97,14 +92,15 @@ func TestSendHandshake(t *testing.T) {
 	var tester func(TestHandshakeResponse)
 	tester = func(v TestHandshakeResponse) {
 
-			Client, Server = net.Pipe()
+			Client, Server := net.Pipe()
 			go xrootd_mockserver.HandleRequest(Server)
 			
 			serverType, _ := xrootd.SendHandshake(Client, v.request)
 			if serverType != v.serverType {
 				t.Errorf("%s Fail, serverType != %d, got serverType = %d",v.name , v.serverType, serverType)	
 			}
-			
+			Client.Close()
+			Server.Close()
 	}
 
 	for _, v := range testValues {
